@@ -5,8 +5,12 @@ import requests
 import json
 import geopandas as gpd
 import msvcrt
+from time import sleep
 from shapely.geometry import LineString, MultiLineString, MultiPolygon, Polygon
 from simplification.cutil import simplify_coords
+
+# Initialize chosen_file as none
+chosen_file = "None"
 
 def json_to_geojson(input_file, output_file):
     with open(input_file, 'r') as f:
@@ -21,6 +25,7 @@ def display_files():
     files = os.listdir(os.path.dirname(os.path.abspath(__file__)))
     json_files = [file for file in files if file.endswith(".json") or file.endswith(".geojson")]
 
+    print("Available json/geojson files: ")
     for file in json_files:
         print(file)
 
@@ -76,50 +81,46 @@ def simplify_geojson(input_file, output_file, tolerance):
         json.dump(simplified_geojson, f, indent=2)
 
 
-def display_menu(chosen_file):
-    if chosen_file == None:
-        chosen_file = "None"
-    else:
-        chosen_file_display = chosen_file
+def display_menu():
+    # make this fella global, it makes everything easier
+    global chosen_file
 
-    print(f"Chosen file: {chosen_file}")
-    print("1. Display all json/geojson files in the current directory")
-    print("2. Choose a file")
-    print("3. Run an Overpass query (make a json file)")
-    print("4. Convert JSON --> GeoJSON")
-    print("5. Simplify GeoJSON")
-    print("6. Exit")
+    print("==== MENU ====")
+    print(f"Current chosen file is: {chosen_file}")
+    print("1. Choose a file")
+    print("2. Run an Overpass query (make a json file)")
+    print("3. Convert JSON --> GeoJSON")
+    print("4. Simplify GeoJSON")
+    print("5. Exit")
     choice = int(input("Enter your choice: "))
 
     if choice == 1:
         display_files()
-        print("Press any key to continue...")
-        key = msvcrt.getch()
-    elif choice == 2:
         chosen_file = input("Enter the name of the file: ")
+        
         if chosen_file not in os.listdir(os.path.dirname(os.path.abspath(__file__))):
             print("File not found")
             chosen_file = None
             print("Press any key to continue...")
-            key = msvcrt.getch()
-
-    elif choice == 3:
+            key = msvcrt.getch()    
+    elif choice == 2:
         query = input("Paste your Overpass query: ")
         filename = str(input("Enter the name of the file: "))
         run_overpass_query(query, filename + ".json")
-    elif choice == 4:
+    elif choice == 3:
         json_to_geojson(chosen_file, chosen_file.replace(".json", ".geojson"))
-    elif choice == 5:
+        print("Everything done !")
+        sleep(3)
+    elif choice == 4:
         tolerance = float(input("Enter desired tolerance: "))
         simplify_geojson(chosen_file, chosen_file.replace(".geojson", "_simplified.geojson"), tolerance)
-    elif choice == 6:
+        print("Everything done !")
+        sleep(3)
+    elif choice == 5:
         exit()
     else:
         print("Invalid choice")
 
 if __name__ == "__main__":
-    # Initialize the chosen file as None
-    chosen_file = None
-
     while True:
-        chosen_file = display_menu(chosen_file)
+        display_menu()
