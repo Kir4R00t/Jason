@@ -1,3 +1,4 @@
+from collections import defaultdict
 import osm2geojson
 import json
 import os
@@ -9,8 +10,9 @@ from time import sleep
 from shapely.geometry import LineString, MultiLineString, MultiPolygon, Polygon
 from simplification.cutil import simplify_coords
 
-# Initialize chosen_file as none
-chosen_file = "None"
+# Initialize chosen_file & data as none
+chosen_file = None
+data = None
 
 def json_to_geojson(input_file, output_file):
     with open(input_file, 'r') as f:
@@ -21,6 +23,7 @@ def json_to_geojson(input_file, output_file):
     with open(output_file, 'w') as f:
         json.dump(geojson_data, f, indent=4)
 
+# Displays files only located in the same dir as python file
 def display_files():
     files = os.listdir(os.path.dirname(os.path.abspath(__file__)))
     json_files = [file for file in files if file.endswith(".json") or file.endswith(".geojson")]
@@ -29,19 +32,10 @@ def display_files():
     for file in json_files:
         print(file)
 
+
+# TODO: make a function to run an overpass query 
 def run_overpass_query(query, overpass_file):
-    overpass_url = "http://overpass-api.de/api/interpreter"
-    response = requests.post(overpass_url, data={'data': query})
-    
-    if response.status_code == 200:
-        data = response.json()
-        
-        with open(overpass_file, 'w') as f:
-            json.dump(data, f, indent=2)
-        print(f"Query results saved to {overpass_file}")
-    else:
-        print(f"Error: {response.status_code}")
-        print(response.text)
+    pass
 
 def simplify_geojson(input_file, output_file, tolerance):
     gdf = gpd.read_file(input_file)
@@ -80,10 +74,29 @@ def simplify_geojson(input_file, output_file, tolerance):
     with open(output_file, 'w') as f:
         json.dump(simplified_geojson, f, indent=2)
 
+# TODO: Finish this
+def count_tags(data):
+    tag_counts = defaultdict(int)
+
+    for element in data["elements"]:
+        if "tags" in element:
+            for tag in element["tags"]:
+                tag_counts[tag] += 1
+
+    
+    tag_counts = count_tags(data)
+    record_count = len(data["elements"])
+
+    # Sortowanie malejąco & wyswietlenie
+    sorted_tag_counts = sorted(tag_counts.items(), key=lambda item: item[1], reverse=True)
+    print("")
+    for tag, count in sorted_tag_counts:                      # Procentowa wartość dla lepszej wizualizacji
+        print(f"Tag '{tag}' pojawił się w {count/record_count*100:.2f}% wszystkich rekordów.")
 
 def display_menu():
-    # make this fella global, it makes everything easier
+    # make this fellas global, fuck the establishment
     global chosen_file
+    global data
 
     print("==== MENU ====")
     print(f"Current chosen file is: {chosen_file}")
@@ -91,13 +104,20 @@ def display_menu():
     print("2. Run an Overpass query (make a json file)")
     print("3. Convert JSON --> GeoJSON")
     print("4. Simplify GeoJSON")
-    print("5. Exit")
+    print("5. Tag counter in Json file")
+    print("6. Exit")
     choice = int(input("Enter your choice: "))
 
     if choice == 1:
         display_files()
         chosen_file = input("Enter the name of the file: ")
         
+        current_directory = os.path.dirname(os.path.abspath(__file__))
+        chosen_file_path = os.path.join(current_directory, chosen_file)
+        
+        with open(chosen_file_path, "r") as file:
+            data = json.load(file)
+
         if chosen_file not in os.listdir(os.path.dirname(os.path.abspath(__file__))):
             print("File not found")
             chosen_file = None
@@ -113,10 +133,17 @@ def display_menu():
         sleep(3)
     elif choice == 4:
         tolerance = float(input("Enter desired tolerance: "))
+        
+        # TODO: It takes wrong file here, Fix thattt
         simplify_geojson(chosen_file, chosen_file.replace(".geojson", "_simplified.geojson"), tolerance)
+        
         print("Everything done !")
         sleep(3)
     elif choice == 5:
+        count_tags(data)
+        print("Press any key to continue...")
+        key = msvcrt.getch()
+    elif choice == 6:
         exit()
     else:
         print("Invalid choice")
@@ -124,3 +151,4 @@ def display_menu():
 if __name__ == "__main__":
     while True:
         display_menu()
+        os.system('cls')
