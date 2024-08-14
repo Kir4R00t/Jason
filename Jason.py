@@ -4,11 +4,14 @@ import os
 import requests
 import json
 import geopandas as gpd
-import msvcrt
 from shapely.geometry import LineString, MultiLineString, MultiPolygon, Polygon
 from simplification.cutil import simplify_coords
 
 def json_to_geojson(input_file, output_file):
+    if not os.path.exists(input_file):
+        print(f"File {input_file} does not exist.")
+        return
+    
     with open(input_file, 'r') as f:
         osm_data = json.load(f)
 
@@ -39,6 +42,10 @@ def run_overpass_query(query, overpass_file):
         print(response.text)
 
 def simplify_geojson(input_file, output_file, tolerance):
+    if not os.path.exists(input_file):
+        print(f"File {input_file} does not exist.")
+        return
+    
     gdf = gpd.read_file(input_file)
 
     def simplify_geometry(geom, tolerance):
@@ -93,32 +100,37 @@ def display_menu(chosen_file):
 
     if choice == 1:
         display_files()
-        print("Press any key to continue...")
-        key = msvcrt.getch()
     elif choice == 2:
         chosen_file = input("Enter the name of the file: ")
-        if chosen_file not in os.listdir(os.path.dirname(os.path.abspath(__file__))):
+        if not os.path.exists(chosen_file):
             print("File not found")
             chosen_file = None
-            print("Press any key to continue...")
-            key = msvcrt.getch()
 
     elif choice == 3:
         query = input("Paste your Overpass query: ")
         filename = str(input("Enter the name of the file: "))
         run_overpass_query(query, filename + ".json")
     elif choice == 4:
-        json_to_geojson(chosen_file, chosen_file.replace(".json", ".geojson"))
+        if chosen_file and chosen_file.endswith(".json"):
+            json_to_geojson(chosen_file, chosen_file.replace(".json", ".geojson"))
+        else:
+            print("Please choose a valid JSON file first.")
     elif choice == 5:
-        tolerance = float(input("Enter desired tolerance: "))
-        simplify_geojson(chosen_file, chosen_file.replace(".geojson", "_simplified.geojson"), tolerance)
+        if chosen_file and chosen_file.endswith(".geojson"):
+            tolerance = float(input("Enter desired tolerance: "))
+            simplify_geojson(chosen_file, chosen_file.replace(".geojson", "_simplified.geojson"), tolerance)
+        else:
+            print("Please choose a valid GeoJSON file first.")
     elif choice == 6:
         exit()
     else:
         print("Invalid choice")
+        print("Press any key to continue...")
+        msvcrt.getch()
+
+    return chosen_file
 
 if __name__ == "__main__":
-    # Initialize the chosen file as None
     chosen_file = None
 
     while True:
